@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 from core.models import Tag
-from .serializers import TagSerializer
+from ..serializers import TagSerializer
 
 
 TAGS_URL = reverse('recipe:tag-list')
@@ -23,40 +23,40 @@ class PublicTagsApiTests(TestCase):
 
 
 class PrivateTagsApiTests(TestCase):
-        """ Test the authorized user tags API"""
-        def setUp(self):
-            self.user = get_user_model().objects.create_user(
-                'test@kburakengin.com',
-                'test123'
-            )
-            self.client = APIClient()
-            self.client.force_authenticate(self.user)
+    """Test the authorized user tags API"""
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            'test@kburakengin.com',
+            'test123'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
 
-        def test_retrieve_tags(self):
-            """Test retrieving tags"""
-            Tag.objects.create(user=self.user, name="Vegan")
-            Tag.objects.create(user=self.user, name='Dessert')
+    def test_retrieve_tags(self):
+        """Test retrieving tags"""
+        Tag.objects.create(user=self.user, name="Vegan")
+        Tag.objects.create(user=self.user, name='Dessert')
 
-            res = self.client.get(TAGS_URL)
+        res = self.client.get(TAGS_URL)
 
-            tags = Tag.objects.all().order_by('-name')
-            serializer = TagSerializer(tags, many=True)
+        tags = Tag.objects.all().order_by('-name')
+        serializer = TagSerializer(tags, many=True)
 
-            self.assertEqual(res.status_code, status.HTTP_200_OK)
-            self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
 
-        def test_tags_limited_to_user(self):
-            """Test that tags returned are for thea authenticated user"""
-            user2 = get_user_model().create_user(
-                'other@kburakengin.com',
-                'testpassword'
-            )
+    def test_tags_limited_to_user(self):
+        """Test that tags returned are for thea authenticated user"""
+        user2 = get_user_model().objects.create_user(
+            'other@kburakengin.com',
+            'testpassword'
+        )
 
-            Tag.objects.create(user=user2, name='Fruity')
-            tag = Tag.objects.create(user=self.user, name='Comfort Food')
+        Tag.objects.create(user=user2, name='Fruity')
+        tag = Tag.objects.create(user=self.user, name='Comfort Food')
 
-            res = self.client.get(TAGS_URL)
+        res = self.client.get(TAGS_URL)
 
-            self.assertEqual(res.status_code, status.HTTP_200_OK)
-            self.assertEqual(len(res.data), 1)
-            self.assertEqual(res.data[0]['name'], tag.name)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]['name'], tag.name)
